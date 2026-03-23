@@ -1,0 +1,25 @@
+name: Publish Alpha
+
+on:
+  push:
+    branches: [alpha]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+      - name: Install
+        run: npm ci
+      - name: Build
+        run: npm run build:packages
+      - name: Test
+        run: npm run test --workspaces --if-present
+      - name: Publish (alpha tag)
+        run: npm publish --workspaces --tag alpha
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

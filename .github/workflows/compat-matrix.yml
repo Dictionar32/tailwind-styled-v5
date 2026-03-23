@@ -1,0 +1,39 @@
+name: Compatibility Matrix
+
+on:
+  pull_request:
+  push:
+    branches: [main, work, alpha]
+
+jobs:
+  matrix-build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [18, 20]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install
+        run: npm ci
+      - name: Core test
+        run: npm run test -w packages/core
+      - name: Build critical packages
+        run: npm run build -w packages/compiler && npm run build -w packages/scanner && npm run build -w packages/engine && npm run build -w packages/vite && npm run build -w packages/cli
+      - name: Create matrix summary
+        run: |
+          mkdir -p artifacts
+          cat > artifacts/compat-${{ matrix.node }}.json <<JSON
+          {
+            "node": "${{ matrix.node }}",
+            "status": "pass"
+          }
+          JSON
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: compat-node-${{ matrix.node }}
+          path: artifacts/compat-${{ matrix.node }}.json

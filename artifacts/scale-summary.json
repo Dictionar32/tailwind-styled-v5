@@ -1,0 +1,17 @@
+{
+  "inputDir": "C:\\Users\\User\\Documents\\demoPackageNpm\\tailwind-styled-v4.5-platform-modify-v2\\tailwind-styled-v4.5-platform-modify\\library\\artifacts\\scale",
+  "counts": {
+    "massive": 3,
+    "memory": 0,
+    "watch": 0
+  },
+  "averages": {
+    "scanMs": 106,
+    "analyzeMs": 542,
+    "engineBuildNoCssMs": 404,
+    "rssMb": 82,
+    "afterGcMb": null,
+    "watchErrors": null
+  },
+  "generatedAt": "2026-03-22T03:55:52.896Z"
+}

@@ -1,0 +1,39 @@
+{
+  "name": "create-tailwind-styled",
+  "version": "5.0.0",
+  "description": "CLI scaffolding tool — npx create-tailwind-styled",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "create-tailwind-styled": "./dist/createApp.js",
+    "tailwind-styled": "./dist/index.js",
+    "tw": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/*.ts --format esm --target es2022 --dts --out-dir dist --clean",
+    "dev": "tsup src/*.ts --format esm --target es2022 --dts --out-dir dist --watch"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsup": "^8",
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.1.0",
+    "@tailwind-styled/analyzer": "^5.0.0",
+    "@tailwind-styled/next": "^5.0.0",
+    "@tailwind-styled/rspack": "^5.0.0",
+    "@tailwind-styled/scanner": "^5.0.0",
+    "@tailwind-styled/svelte": "^5.0.0",
+    "@tailwind-styled/vite": "^5.0.0",
+    "@tailwind-styled/vue": "^5.0.0",
+    "commander": "^12.1.0",
+    "picocolors": "^1.1.1"
+  }
+}

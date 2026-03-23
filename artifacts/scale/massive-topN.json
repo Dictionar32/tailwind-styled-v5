@@ -1,0 +1,15 @@
+{
+  "root": "C:\\Users\\User\\Documents\\demoPackageNpm\\tailwind-styled-v4.5-platform-modify-v2\\tailwind-styled-v4.5-platform-modify\\library\\packages\\runtime\\src",
+  "files": 5,
+  "uniqueClasses": 4,
+  "timingsMs": {
+    "scan": 10,
+    "analyze": 719,
+    "engineBuildNoCss": 652
+  },
+  "memoryMb": {
+    "rss": 78,
+    "heapUsed": 34
+  },
+  "generatedAt": "2026-03-22T03:55:40.010Z"
+}

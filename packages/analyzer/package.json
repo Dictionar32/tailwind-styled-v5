@@ -1,0 +1,38 @@
+{
+  "name": "@tailwind-styled/analyzer",
+  "version": "5.0.0",
+  "description": "Project-aware analyzer for tailwind-styled-v4",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@tailwind-styled/scanner": "^5.0.0",
+    "@tailwind-styled/shared": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "tsup": "^8"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --out-dir dist --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --out-dir dist --watch",
+    "clean": "rm -rf dist"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "name": "@tailwind-styled/next",
+  "version": "5.0.0",
+  "description": "Next.js integration for tailwind-styled-v4 — withTailwindStyled, webpack/turbopack loaders",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "dependencies": {
+    "@tailwind-styled/compiler": "*",
+    "@tailwind-styled/engine": "*",
+    "@tailwind-styled/plugin": "*"
+  },
+  "peerDependencies": {
+    "next": ">=14"
+  },
+  "devDependencies": {
+    "next": ">=14",
+    "tsup": "^8",
+    "typescript": "^5",
+    "@types/node": "^20"
+  }
+}

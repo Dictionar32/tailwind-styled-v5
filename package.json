@@ -1,0 +1,58 @@
+{
+  "name": "tailwind-styled-v4-monorepo",
+  "version": "5.0.0",
+  "private": true,
+  "description": "Monorepo for tailwind-styled-v4 \u2014 Rust-powered, compiler-driven, RSC-aware styling",
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "npm run build:rust && npm run build:packages",
+    "test": "npm run test:rust && npm run test:js",
+    "dev": "npm run dev -w packages/shared -w packages/compiler -w packages/scanner -w packages/engine -w packages/core -w packages/runtime -w packages/runtime-css -w packages/analyzer -w packages/animate -w packages/theme -w packages/plugin -w packages/next -w packages/vite -w packages/rspack",
+    "build:rust": "node scripts/native-tools.mjs build",
+    "build:packages": "npm run build -w packages/shared -w packages/analyzer -w packages/animate -w packages/theme -w packages/plugin -w packages/preset -w packages/compiler -w packages/scanner -w packages/engine -w packages/cli -w packages/devtools -w packages/runtime-css -w packages/runtime -w packages/vite -w packages/vscode -w packages/rspack -w packages/next -w packages/core -w packages/vue -w packages/svelte -w packages/testing -w packages/storybook-addon -w packages/plugin-registry",
+    "test:rust": "cd native && cargo test",
+    "test:js": "node --test packages/runtime/test/index.test.mjs packages/compiler/test/nativeBridge.test.mjs packages/compiler/test/subcomponent.test.mjs packages/compiler/test/shake-v47.test.mjs packages/scanner/test/parse-v46.test.mjs packages/animate/test/animate.test.mjs packages/theme/test/theme.test.mjs packages/plugin/test/plugin.test.mjs packages/engine/test/engine.test.mjs packages/shared/test/shared.test.mjs packages/analyzer/test/analyzer.test.mjs packages/analyzer/test/analyzer-esm.test.mjs packages/next/test/next.test.mjs packages/vite/test/vite.test.mjs packages/rspack/test/rspack.test.mjs packages/preset/test/preset.test.mjs packages/runtime-css/test/runtime-css.test.mjs packages/cli/test/cli.test.mjs packages/cli/test/bench-massive.test.mjs",
+    "bench": "node scripts/benchmark/run.mjs",
+    "bench:engine": "node scripts/benchmark-engine.mjs",
+    "lint": "node scripts/lint.mjs",
+    "format": "biome format --write",
+    "setup": "node scripts/setup.mjs",
+    "build:stage1": "npm run build:rust",
+    "build:stage2": "npm run build:packages",
+    "validate:final": "node scripts/validate/final-report.mjs",
+    "health:summary": "node scripts/validate/health-summary.mjs",
+    "validate:pr5:gaps": "node scripts/validate/pr5-gap-check.mjs",
+    "test:smoke": "node scripts/smoke/index.mjs",
+    "test:smoke:fallback": "node scripts/test-fallback.mjs",
+    "fixture:massive": "node scripts/generate-massive-fixture.mjs",
+    "bench:massive": "node scripts/benchmark/massive.mjs",
+    "bench:memory": "node scripts/benchmark/memory-profile.mjs",
+    "bench:watch:stability": "node scripts/benchmark/watch-stability.mjs",
+    "bench:native": "node benchmarks/native-parser-bench.mjs"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.7",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "oxlint": "^1.56.0",
+    "tsup": "^8",
+    "typescript": "^5"
+  },
+  "optionalDependencies": {
+    "oxc-parser": "^0.120.0",
+    "oxc-transform": "^0.120.0",
+    "oxc-minify": "^0.120.0"
+  },
+  "overrides": {
+    "tar": "^7.6.0",
+    "glob": "^10.4.5",
+    "esbuild": "^0.25.0",
+    "vite": "^6.2.0"
+  }
+}

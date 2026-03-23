@@ -1,0 +1,28 @@
+{
+  "name": "@tailwind-styled/atomic",
+  "version": "5.0.0",
+  "description": "Atomic CSS generation for tailwind-styled-v4",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "peerDependencies": {
+    "@tailwind-styled/compiler": ">=5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsup": "^8",
+    "typescript": "^5"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --out-dir dist --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --out-dir dist --watch"
+  }
+}

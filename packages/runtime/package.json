@@ -1,0 +1,28 @@
+{
+  "name": "@tailwind-styled/runtime",
+  "version": "5.0.0",
+  "description": "Runtime helpers for tailwind-styled-v5 compound components",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --out-dir dist --clean",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=17"
+  },
+  "devDependencies": {
+    "@types/react": "*",
+    "tsup": "*",
+    "typescript": "*"
+  },
+  "sideEffects": false
+}

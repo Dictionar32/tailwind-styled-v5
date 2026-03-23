@@ -1,0 +1,39 @@
+{
+  "name": "@tailwind-styled/runtime-css",
+  "version": "4.5.0",
+  "description": "RSC-aware CSS injector for tailwind-styled-v4 — streaming-friendly, zero client JS",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/CssInjector.d.ts",
+      "import": "./dist/CssInjector.js",
+      "require": "./dist/CssInjector.cjs"
+    },
+    "./batched": {
+      "types": "./dist/batchedInjector.d.ts",
+      "import": "./dist/batchedInjector.js",
+      "require": "./dist/batchedInjector.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/CssInjector.tsx src/batchedInjector.ts --format cjs,esm --dts --out-dir dist --clean",
+    "dev": "tsup src/CssInjector.tsx src/batchedInjector.ts --format cjs,esm --dts --out-dir dist --watch"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "devDependencies": {
+    "tsup": "^8",
+    "typescript": "^5",
+    "@types/react": "^19",
+    "@types/node": "^20"
+  }
+}

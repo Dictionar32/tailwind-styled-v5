@@ -1,0 +1,101 @@
+{
+  "summary": {
+    "generatedAt": "2026-03-21T02:44:10.307Z",
+    "total": 15,
+    "missing": 4,
+    "incomplete": 3,
+    "blocking": 3
+  },
+  "results": [
+    {
+      "id": "scanner-ast-parser",
+      "priority": "high",
+      "path": "packages/scanner/src/ast-parser.ts",
+      "status": "present"
+    },
+    {
+      "id": "scanner-template-handler",
+      "priority": "high",
+      "path": "packages/scanner/src/template-handler.ts",
+      "status": "present"
+    },
+    {
+      "id": "benchmark-script",
+      "priority": "high",
+      "path": "scripts/benchmark/incremental.js",
+      "status": "present"
+    },
+    {
+      "id": "benchmark-ci",
+      "priority": "high",
+      "path": ".github/workflows/benchmark.yml",
+      "status": "present"
+    },
+    {
+      "id": "large-fixture",
+      "priority": "high",
+      "path": "test/fixtures/large-project/generated",
+      "status": "missing"
+    },
+    {
+      "id": "docs-api-core",
+      "priority": "medium",
+      "path": "docs/api/core.md",
+      "status": "present"
+    },
+    {
+      "id": "docs-api-scanner",
+      "priority": "medium",
+      "path": "docs/api/scanner.md",
+      "status": "present"
+    },
+    {
+      "id": "docs-api-engine",
+      "priority": "medium",
+      "path": "docs/api/engine.md",
+      "status": "present"
+    },
+    {
+      "id": "docs-api-cli",
+      "priority": "medium",
+      "path": "docs/api/cli.md",
+      "status": "incomplete"
+    },
+    {
+      "id": "docs-api-vite",
+      "priority": "medium",
+      "path": "docs/api/vite.md",
+      "status": "incomplete"
+    },
+    {
+      "id": "example-nextjs",
+      "priority": "high",
+      "path": "examples/nextjs/package.json",
+      "status": "missing"
+    },
+    {
+      "id": "example-vite",
+      "priority": "high",
+      "path": "examples/vite/package.json",
+      "status": "incomplete"
+    },
+    {
+      "id": "example-rspack",
+      "priority": "high",
+      "path": "examples/rspack/package.json",
+      "status": "present"
+    },
+    {
+      "id": "example-package-frontend",
+      "priority": "medium",
+      "path": "examples/package-frontend/package.json",
+      "status": "missing"
+    },
+    {
+      "id": "example-simple",
+      "priority": "medium",
+      "path": "examples/simple/package.json",
+      "status": "missing"
+    }
+  ]
+}

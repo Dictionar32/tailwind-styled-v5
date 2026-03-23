@@ -1,0 +1,29 @@
+{
+  "name": "@tailwind-styled/plugin-registry",
+  "version": "5.0.0",
+  "description": "Plugin discovery and install helper for the tailwind-styled v5 ecosystem",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "tw-plugin": "./dist/cli.cjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "registry.json"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts src/cli.ts --format cjs,esm --dts --out-dir dist --clean --external typescript",
+    "dev": "tsup src/index.ts src/cli.ts --format cjs,esm --dts --out-dir dist --watch --external typescript",
+    "test": "npm run build && node --test test/*.test.mjs"
+  }
+}

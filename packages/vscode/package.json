@@ -1,0 +1,140 @@
+{
+  "name": "@tailwind-styled/vscode",
+  "version": "5.0.0",
+  "description": "VSCode extension for tailwind-styled analyzer insights",
+  "license": "MIT",
+  "type": "commonjs",
+  "main": "./dist/extension.js",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "activationEvents": [
+    "onCommand:tailwindStyled.analyzeWorkspace",
+    "onCommand:tailwindStyled.installPlugin",
+    "onCommand:tailwindStyled.createComponent",
+    "onCommand:tailwindStyled.splitRoutesCss",
+    "onCommand:tailwindStyled.figmaSync"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "tailwindStyled.analyzeWorkspace",
+        "title": "Tailwind Styled: Analyze Workspace"
+      },
+      {
+        "command": "tailwindStyled.installPlugin",
+        "title": "Tailwind Styled: Install Plugin"
+      },
+      {
+        "command": "tailwindStyled.createComponent",
+        "title": "Tailwind Styled: Create Component (AI)"
+      },
+      {
+        "command": "tailwindStyled.splitRoutesCss",
+        "title": "Tailwind Styled: Split Route CSS"
+      },
+      {
+        "command": "tailwindStyled.figmaSync",
+        "title": "Tailwind Styled: Figma Token Sync"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "tailwindStyled.analyzeWorkspace",
+        "key": "ctrl+shift+t",
+        "mac": "cmd+shift+t",
+        "when": "editorFocus"
+      },
+      {
+        "command": "tailwindStyled.createComponent",
+        "key": "ctrl+shift+n",
+        "mac": "cmd+shift+n",
+        "when": "editorFocus"
+      },
+      {
+        "command": "tailwindStyled.splitRoutesCss",
+        "key": "ctrl+shift+s",
+        "mac": "cmd+shift+s",
+        "when": "workspaceFolderCount > 0"
+      }
+    ],
+    "configuration": {
+      "title": "Tailwind Styled",
+      "properties": {
+        "tailwindStyled.lsp.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Tailwind Styled LSP server (hover, completion, diagnostics)"
+        },
+        "tailwindStyled.ai.provider": {
+          "type": "string",
+          "default": "anthropic",
+          "enum": [
+            "anthropic",
+            "openai",
+            "ollama"
+          ],
+          "description": "AI provider for component generation"
+        },
+        "tailwindStyled.ai.ollamaHost": {
+          "type": "string",
+          "default": "http://localhost:11434",
+          "description": "Ollama server URL (when provider is ollama)"
+        },
+        "tailwindStyled.figma.fileKey": {
+          "type": "string",
+          "default": "",
+          "description": "Figma file key (from figma.com/file/<KEY>/...)"
+        },
+        "tailwindStyled.studio.port": {
+          "type": "number",
+          "default": 3030,
+          "description": "Port for the Studio web server"
+        }
+      }
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "tailwindStyled.createComponent",
+          "when": "resourceExtname == .tsx || resourceExtname == .jsx",
+          "group": "tailwindStyled@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "tailwindStyled.analyzeWorkspace"
+        },
+        {
+          "command": "tailwindStyled.installPlugin"
+        },
+        {
+          "command": "tailwindStyled.createComponent"
+        },
+        {
+          "command": "tailwindStyled.splitRoutesCss"
+        },
+        {
+          "command": "tailwindStyled.figmaSync"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "tsup src/extension.ts --format cjs --out-dir dist --clean --external vscode",
+    "dev": "tsup src/extension.ts --format cjs --out-dir dist --watch --external vscode",
+    "postbuild": "node scripts/postbuild.cjs"
+  },
+  "dependencies": {
+    "@tailwind-styled/analyzer": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsup": "^8",
+    "typescript": "^5"
+  },
+  "optionalDependencies": {
+    "vscode-languageserver": "^9.0.0",
+    "vscode-languageserver-textdocument": "^1.0.11"
+  }
+}

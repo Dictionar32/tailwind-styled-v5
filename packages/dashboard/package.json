@@ -1,0 +1,14 @@
+{
+  "name": "@tailwind-styled/dashboard",
+  "version": "4.5.0",
+  "description": "Performance dashboard for benchmark and runtime metrics",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/server.mjs",
+  "scripts": {
+    "dev": "node src/server.mjs",
+    "test": "node -e \"import('./src/server.mjs').then(()=>setTimeout(()=>process.exit(0),500))\"",
+    "build": "echo \"No build step \u2014 ESM server runs directly\"",
+    "start": "node src/server.mjs"
+  }
+}

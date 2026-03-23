@@ -1,0 +1,359 @@
+/**
+ * tailwind-styled-v4 — withTailwindStyled v5
+ *
+ * Next.js plugin v5:
+ * - Simplified API (removed deprecated options)
+ * - Integrates with @tailwind-styled/engine for build
+ * - Removed legacy code (scripts, direct compiler calls)
+ * - Native-first architecture
+ */
+
+import fs from "node:fs"
+import path from "node:path"
+import type { TwPlugin } from "@tailwind-styled/plugin"
+import type { NextConfig } from "next"
+
+export interface TailwindStyledNextOptions {
+  /** Directories to scan for components. Default: ["src"] */
+  scanDirs?: string[]
+  /** Output path for safelist CSS. Default: "src/app/__tw-safelist.css" */
+  safelistOutput?: string
+  /** Add data-tw attributes to components. Default: true in dev */
+  addDataAttr?: boolean
+  /** Auto-add "use client" boundary for interactive components. Default: true */
+  autoClientBoundary?: boolean
+  /** Hoist static variants. Default: true (false with React Compiler) */
+  hoist?: boolean
+  /** Generate route-level CSS. Default: true in production */
+  routeCss?: boolean
+  /** Output directory for route CSS. Default: ".next/static/css/tw" */
+  routeCssDir?: string
+  /** Serve css-manifest.json in dev mode. Default: true in dev */
+  devManifest?: boolean
+  /** Use Tailwind zero-config. Default: true */
+  zeroConfig?: boolean
+  /** Plugin array */
+  plugins?: TwPlugin[]
+  /** Enable DevTools overlay. Default: true in dev */
+  devtools?: boolean
+
+  /** @deprecated in v5 - mode is always "zero-runtime" */
+  mode?: "zero-runtime" | "runtime"
+  /** @deprecated in v5 - use @tailwind-styled/atomic package */
+  atomic?: boolean
+  /** @deprecated in v5 - handled by engine automatically */
+  staticVariants?: boolean
+  /** @deprecated in v5 - use engine with analyze: true */
+  deadStyleElimination?: boolean
+  /** @deprecated in v5 - handled by engine internally */
+  incremental?: boolean
+  /** @deprecated in v5 - handled by engine internally */
+  styleBuckets?: boolean
+  /** @deprecated in v5 - handled by engine internally */
+  incrementalVerbose?: boolean
+}
+
+const LOADER_PATH = require.resolve("./turbopackLoader")
+const WEBPACK_LOADER_PATH = require.resolve("./webpackLoader")
+
+function warnDeprecated(
+  options: TailwindStyledNextOptions,
+  key: keyof TailwindStyledNextOptions,
+  message: string
+) {
+  if (options[key] !== undefined) {
+    console.warn(`[tailwind-styled-v4] Warning: '${key}' is deprecated in v5. ${message}`)
+  }
+}
+
+export function withTailwindStyled(opts: TailwindStyledNextOptions = {}) {
+  return (nextConfig: NextConfig = {}): NextConfig => {
+    const cwd = process.cwd()
+    const isDev = process.env.NODE_ENV !== "production"
+
+    warnDeprecated(opts, "mode", "Only zero-runtime is supported in v5.")
+    warnDeprecated(opts, "atomic", "Use @tailwind-styled/atomic package instead.")
+    warnDeprecated(opts, "staticVariants", "Handled automatically by the engine.")
+    warnDeprecated(opts, "deadStyleElimination", "Use engine with analyze: true instead.")
+    warnDeprecated(opts, "incremental", "Handled internally by the engine.")
+    warnDeprecated(opts, "styleBuckets", "Handled internally by the engine.")
+    warnDeprecated(opts, "incrementalVerbose", "Handled internally by the engine.")
+
+    const hasReactCompiler =
+      (nextConfig as any).reactCompiler === true ||
+      (nextConfig as any).experimental?.reactCompiler === true
+
+    if (hasReactCompiler && isDev) {
+      console.log("[tailwind-styled-v4] React Compiler detected → hoist disabled")
+    }
+
+    const {
+      scanDirs = ["src"],
+      safelistOutput = "src/app/__tw-safelist.css",
+      addDataAttr = isDev,
+      autoClientBoundary = true,
+      hoist = !hasReactCompiler,
+      routeCssDir = path.join(cwd, ".next", "static", "css", "tw"),
+      zeroConfig = true,
+      plugins = [],
+      devtools = isDev,
+    } = opts
+
+    const routeCss = opts.routeCss !== undefined ? opts.routeCss : !isDev
+    const devManifest = opts.devManifest !== undefined ? opts.devManifest : isDev
+    const devManifestRewrites =
+      devManifest && isDev
+        ? [
+            {
+              source: "/__tw/css-manifest.json",
+              destination: "/.next/static/css/tw/css-manifest.json",
+            },
+            { source: "/__tw/:path*.css", destination: "/.next/static/css/tw/:path*.css" },
+          ]
+        : []
+
+    if (zeroConfig) {
+      try {
+        const { bootstrapZeroConfig } = require("@tailwind-styled/compiler")
+        bootstrapZeroConfig(cwd)
+      } catch {
+        /* non-critical */
+      }
+    }
+
+    // Ensure safelist CSS exists
+    const safelistAbsPath = path.isAbsolute(safelistOutput)
+      ? safelistOutput
+      : path.resolve(cwd, safelistOutput)
+    if (!fs.existsSync(safelistAbsPath)) {
+      try {
+        fs.mkdirSync(path.dirname(safelistAbsPath), { recursive: true })
+        fs.writeFileSync(
+          safelistAbsPath,
+          "/* Auto-generated by tailwind-styled-v4 — DO NOT EDIT */\n"
+        )
+      } catch {
+        /* non-critical */
+      }
+    }
+
+    // Initialize plugins
+    if (plugins.length > 0) {
+      try {
+        const { use } = require("@tailwind-styled/plugin")
+        for (const plugin of plugins) use(plugin)
+        console.log(
+          `[tailwind-styled-v4] ${plugins.length} plugin(s): ${plugins.map((p: TwPlugin) => p.name).join(", ")}`
+        )
+      } catch (e) {
+        console.warn("[tailwind-styled-v4] Plugin init failed:", e)
+      }
+    }
+
+    // Loader options - simplified for v5
+    const loaderOpts = Object.fromEntries(
+      Object.entries({
+        addDataAttr,
+        autoClientBoundary,
+        hoist,
+      }).filter(([, v]) => v !== undefined && v !== null)
+    ) as {
+      addDataAttr: boolean
+      autoClientBoundary: boolean
+      hoist: boolean
+    }
+
+    return {
+      ...nextConfig,
+
+      // Dev mode rewrites for /__tw/ manifest serving
+      ...(devManifestRewrites.length > 0
+        ? {
+            async rewrites() {
+              const existing =
+                typeof nextConfig.rewrites === "function"
+                  ? await nextConfig.rewrites()
+                  : (nextConfig.rewrites ?? [])
+              const {
+                beforeFiles = [],
+                afterFiles = [],
+                fallback = [],
+              } = Array.isArray(existing) ? { beforeFiles: existing as any[] } : (existing as any)
+              return { beforeFiles: [...devManifestRewrites, ...beforeFiles], afterFiles, fallback }
+            },
+          }
+        : {}),
+
+      experimental: {
+        ...(nextConfig.experimental as any),
+      },
+
+      // Turbopack rules
+      turbopack: {
+        ...(nextConfig as any).turbopack,
+        rules: {
+          ...Object.fromEntries(
+            scanDirs.flatMap((dir: string) => [
+              [
+                `{./${dir},./src,./app,./pages,./components}/**/*.tsx`,
+                {
+                  loaders: [{ loader: LOADER_PATH, options: loaderOpts }],
+                },
+              ],
+              [
+                `{./${dir},./src,./app,./pages,./components}/**/*.ts`,
+                {
+                  loaders: [{ loader: LOADER_PATH, options: loaderOpts }],
+                },
+              ],
+            ])
+          ),
+          ...(nextConfig as any).turbopack?.rules,
+        },
+      },
+
+      webpack(webpackConfig: any, webpackOpts: any) {
+        const alreadyRegistered = webpackConfig.module.rules.some(
+          (r: any) => r._tailwindStyledMarker === true
+        )
+        if (!alreadyRegistered) {
+          webpackConfig.module.rules.push({
+            _tailwindStyledMarker: true,
+            test: /\.(tsx|ts|jsx|js)$/,
+            exclude: /node_modules/,
+            use: [
+              {
+                loader: WEBPACK_LOADER_PATH,
+                options: {
+                  ...loaderOpts,
+                  addDataAttr: opts.addDataAttr ?? webpackOpts.dev,
+                },
+              },
+            ],
+          })
+        }
+
+        if (devtools && webpackOpts.dev) {
+          webpackConfig.resolve = webpackConfig.resolve ?? {}
+          webpackConfig.resolve.alias = {
+            ...(webpackConfig.resolve.alias ?? undefined),
+            "tailwind-styled-v4/devtools": path.resolve(__dirname, "../../devtools/src/index.tsx"),
+          }
+        }
+
+        return typeof nextConfig.webpack === "function"
+          ? nextConfig.webpack(webpackConfig, webpackOpts)
+          : webpackConfig
+      },
+
+      generateBuildId: async () => {
+        // 1. Safelist CSS - using engine via scanner
+        try {
+          const { generateSafelistCss } = require("@tailwind-styled/compiler")
+          generateSafelistCss(
+            scanDirs.map((d: string) => path.resolve(cwd, d)),
+            path.isAbsolute(safelistOutput) ? safelistOutput : path.resolve(cwd, safelistOutput)
+          )
+          console.log("[tailwind-styled-v4] ✓ Safelist CSS generated")
+        } catch (e) {
+          console.warn("[tailwind-styled-v4] Safelist skipped:", e)
+        }
+
+        // 2. Plugin build hooks
+        if (plugins.length > 0) {
+          try {
+            const { getGlobalRegistry, runBuildHooks } = require("@tailwind-styled/plugin")
+            await runBuildHooks(getGlobalRegistry())
+            console.log("[tailwind-styled-v4] ✓ Plugin build hooks complete")
+          } catch (e) {
+            console.warn("[tailwind-styled-v4] Plugin build hooks failed:", e)
+          }
+        }
+
+        // 3. Route CSS - use engine for generation
+        if (routeCss) {
+          try {
+            const { createEngine } = require("@tailwind-styled/engine")
+
+            const engine = await createEngine({
+              root: cwd,
+              scanner: {
+                includeExtensions: [".tsx", ".ts", ".jsx", ".js"],
+                ignoreDirectories: scanDirs,
+              },
+              compileCss: true,
+              tailwindConfigPath: zeroConfig ? undefined : "tailwind.config.ts",
+              plugins: [],
+            })
+
+            const buildResult = await engine.build()
+
+            // Write route CSS files
+            if (buildResult.css) {
+              const routeDir = routeCssDir
+              fs.mkdirSync(routeDir, { recursive: true })
+
+              // For now, write a single combined CSS - route splitting handled by Next.js
+              const indexCssPath = path.join(routeDir, "index.css")
+              fs.writeFileSync(indexCssPath, buildResult.css)
+
+              // Generate manifest for route css middleware
+              const manifest = { "/": "index.css" }
+              const manifestPath = path.join(
+                cwd,
+                ".next",
+                "static",
+                "css",
+                "tw",
+                "css-manifest.json"
+              )
+              fs.mkdirSync(path.dirname(manifestPath), { recursive: true })
+              fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2))
+
+              const sizeKb = Buffer.byteLength(buildResult.css, "utf8") / 1024
+              console.log(`[tailwind-styled-v4] ✓ Route CSS: ${sizeKb.toFixed(1)}KB`)
+              console.log(
+                "[tailwind-styled-v4] ✓ Route CSS manifest → .next/static/css/tw/css-manifest.json"
+              )
+            }
+          } catch (e) {
+            console.warn("[tailwind-styled-v4] Route CSS skipped:", e)
+          }
+        }
+
+        // 4. Plugin CSS
+        if (plugins.length > 0) {
+          try {
+            const {
+              getGlobalRegistry,
+              generateTokenCss,
+              generateUtilityCss,
+              applyCssHooks,
+            } = require("@tailwind-styled/plugin")
+            const registry = getGlobalRegistry()
+            let pluginCss = [generateTokenCss(registry), generateUtilityCss(registry)]
+              .filter(Boolean)
+              .join("\n\n")
+            pluginCss = applyCssHooks(pluginCss, registry)
+            if (pluginCss.trim()) {
+              const outPath = path.join(cwd, "public", "__tw-plugins.css")
+              fs.mkdirSync(path.dirname(outPath), { recursive: true })
+              fs.writeFileSync(outPath, pluginCss)
+              console.log("[tailwind-styled-v4] ✓ Plugin CSS → public/__tw-plugins.css")
+            }
+          } catch (e) {
+            console.warn("[tailwind-styled-v4] Plugin CSS skipped:", e)
+          }
+        }
+
+        if (typeof nextConfig.generateBuildId === "function") return nextConfig.generateBuildId()
+        return null
+      },
+    }
+  }
+}
+
+export default withTailwindStyled
+
+// Re-export route css utilities
+export { getRouteCssLinks } from "./routeCssMiddleware"

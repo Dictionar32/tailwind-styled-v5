@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "baseUrl": ".",
+    "paths": {
+      "@tailwind-styled/compiler": ["../compiler/dist/index.d.ts"],
+      "@tailwind-styled/scanner": ["../scanner/dist/index.d.ts"]
+    }
+  },
+  "include": ["src"]
+}

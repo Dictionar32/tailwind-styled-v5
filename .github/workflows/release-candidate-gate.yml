@@ -1,0 +1,54 @@
+name: Release Candidate Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (e.g. 4.2.0)"
+        required: false
+        default: "4.2.0"
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build workspace
+        run: npm run build
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run smoke tests (core + Sprint 1+2)
+        run: node scripts/smoke/index.mjs
+        env:
+          SMOKE_VERBOSE: "1"
+
+      - name: Run final validation
+        run: node scripts/validate/final-report.mjs
+
+      - name: Create health summary
+        run: node scripts/validate/health-summary.mjs
+
+      - name: Run Sprint 2 benchmark (100 files)
+        run: node scripts/benchmark/sprint2-bench.mjs --files=100
+
+      - name: Upload validation artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-candidate-${{ github.event.inputs.version }}-validation
+          path: |
+            artifacts/*.json
+            docs/benchmark/sprint2-results.json

@@ -1,0 +1,38 @@
+{
+  "name": "@tailwind-styled/devtools",
+  "version": "4.5.0",
+  "description": "Visual debug overlay for tailwind-styled-v4 \u2014 zero production impact",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.tsx --format cjs,esm --dts --out-dir dist --clean",
+    "dev": "tsup src/index.tsx --format cjs,esm --dts --out-dir dist --watch"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "devDependencies": {
+    "tsup": "^8",
+    "typescript": "^5",
+    "@types/react": "^19",
+    "@types/node": "^20"
+  },
+  "dependencies": {
+    "@tailwind-styled/analyzer": "*",
+    "@tailwind-styled/scanner": "*"
+  }
+}

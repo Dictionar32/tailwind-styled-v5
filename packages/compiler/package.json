@@ -1,0 +1,45 @@
+{
+  "name": "@tailwind-styled/compiler",
+  "version": "4.5.0",
+  "description": "Compiler pipeline for tailwind-styled-v4",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./internal": {
+      "types": "./dist/internal.d.ts",
+      "import": "./dist/internal.js",
+      "require": "./dist/internal.cjs"
+    }
+  },
+  "dependencies": {
+    "@tailwind-styled/atomic": "*",
+    "tailwind-merge": "^3",
+    "postcss": "^8",
+    "@tailwind-styled/shared": "*",
+    "@tailwind-styled/plugin": "*"
+  },
+  "optionalDependencies": {
+    "oxc-parser": "^0.118.0"
+  },
+  "peerDependencies": {
+    "tailwindcss": "^4",
+    "@tailwindcss/postcss": "^4"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsup": "^8",
+    "typescript": "^5"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts src/internal.ts --format cjs,esm --dts --out-dir dist --clean",
+    "dev": "tsup src/index.ts src/internal.ts --format cjs,esm --dts --out-dir dist --watch"
+  }
+}

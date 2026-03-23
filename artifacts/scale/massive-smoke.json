@@ -1,0 +1,15 @@
+{
+  "root": "C:\\Users\\User\\Documents\\demoPackageNpm\\tailwind-styled-v4.5-platform-modify\\library\\artifacts\\massive-smoke",
+  "files": 100,
+  "uniqueClasses": 12,
+  "timingsMs": {
+    "scan": 133,
+    "analyze": 2,
+    "engineBuildNoCss": 33
+  },
+  "memoryMb": {
+    "rss": 84,
+    "heapUsed": 35
+  },
+  "generatedAt": "2026-03-21T03:20:32.123Z"
+}

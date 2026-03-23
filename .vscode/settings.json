@@ -1,0 +1,9 @@
+{
+  "rust-analyzer.cargo.path": "C:\\Users\\User\\.cargo\\bin\\cargo.exe",
+  "rust-analyzer.cargo.extraEnv": {
+    "PATH": "C:\\Users\\User\\.cargo\\bin;${env:PATH}"
+  },
+  "rust-analyzer.check.extraEnv": {
+    "PATH": "C:\\Users\\User\\.cargo\\bin;${env:PATH}"
+  }
+}
