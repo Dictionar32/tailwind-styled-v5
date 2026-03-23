@@ -9,19 +9,19 @@ export default defineConfig({
     turbopackLoader: "../next/src/turbopackLoader.ts",
     webpackLoader:   "../next/src/webpackLoader.ts",
     vite:            "../vite/src/plugin.ts",
-    // Compiler
-    compiler:        "../compiler/src/index.ts",
     // Preset
     preset:          "../preset/src/defaultPreset.ts",
     // Extras
-    plugins:         "../plugin/src/index.ts",
     devtools:        "../devtools/src/index.tsx",
     animate:         "../animate/src/index.ts",
-    theme:           "../theme/src/index.ts",
     css:             "../runtime-css/src/CssInjector.tsx",
   },
   format: ["cjs", "esm"],
-  dts: true,
+  dts: {
+    tsconfig: "./tsconfig.json",
+    // Only generate DTS for the main entry point
+    entryRoot: "src",
+  },
   splitting: true,
   sourcemap: true,
   clean: true,
@@ -61,8 +61,7 @@ export default defineConfig({
     "node:stream",
     "node:events",
     "node:util",
-    // Internal workspace packages — sudah di-bundle langsung dari src,
-    // tapi kalau ada import antar-package di runtime harus external
+    // Internal workspace packages - use built dist from individual packages
     "@tailwind-styled/compiler",
     "@tailwind-styled/engine",
     "@tailwind-styled/scanner",

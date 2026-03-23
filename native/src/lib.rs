@@ -719,7 +719,7 @@ pub fn analyze_classes(files_json: String, root: String, top_n: u32) -> Analyzer
 /// Minimal JSON parser for the files array — avoids pulling in serde_json.
 mod serde_json_classes {
     pub struct FileEntry {
-        pub file: String,
+        pub _file: String,
         pub classes: Vec<String>,
     }
 
@@ -750,7 +750,7 @@ mod serde_json_classes {
                 Vec::new()
             };
 
-            entries.push(FileEntry { file, classes });
+            entries.push(FileEntry { _file: file, classes });
         }
 
         Some(entries)
@@ -1861,6 +1861,7 @@ pub fn ast_extract_classes(source: String, filename: String) -> AstExtractResult
     static RE_TW_TEMPLATE: Lazy<Regex> = Lazy::new(||
         Regex::new(r#"\btw(?:\.server)?\.(\w+)`([^`]*)`"#).unwrap()
     );
+    #[allow(dead_code)]
     static RE_TW_OBJECT: Lazy<Regex> = Lazy::new(||
         Regex::new(r#"\btw(?:\.server)?\.(\w+)\(\s*\{"#).unwrap()
     );
@@ -2936,7 +2937,7 @@ struct PendingEvent {
 }
 
 struct WatcherSlot {
-    handle: watcher::WatcherHandle,
+    _handle: watcher::WatcherHandle,
     events: std::sync::Arc<Mutex<Vec<PendingEvent>>>,
 }
 
@@ -2977,7 +2978,7 @@ pub fn start_watch(root_dir: String) -> WatchStartResult {
         Ok(handle) => {
             let mut watchers = ACTIVE_WATCHERS.lock().unwrap();
             let handle_id = watchers.len() as u32;
-            watchers.push(WatcherSlot { handle, events });
+            watchers.push(WatcherSlot { _handle: handle, events });
             WatchStartResult { status: "ok".to_string(), handle_id }
         }
         Err(e) => WatchStartResult {

@@ -3,6 +3,10 @@
   "version": "5.0.0",
   "description": "Atomic CSS generation for tailwind-styled-v4",
   "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -14,7 +18,7 @@
     }
   },
   "peerDependencies": {
-    "@tailwind-styled/compiler": ">=5.0.0"
+    "@tailwind-styled/compiler": ">=4.5.0"
   },
   "devDependencies": {
     "@types/node": "^20",

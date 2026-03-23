@@ -9,7 +9,7 @@ export default defineConfig({
     webpackLoader:   "src/webpackLoader.ts",
   },
   format: ["cjs", "esm"],
-  dts: true,
+  dts: false,
   clean: true,
   external: [
     // Framework & Node built-ins — tetap external

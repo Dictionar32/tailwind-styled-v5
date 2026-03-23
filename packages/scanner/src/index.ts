@@ -1,17 +1,12 @@
 import fs from "node:fs"
 import path from "node:path"
-import { Worker } from "node:worker_threads"
 import { fileURLToPath } from "node:url"
+import { Worker } from "node:worker_threads"
 
 import { extractAllClasses } from "@tailwind-styled/compiler"
-
-import { ScanCache } from "./cache"
-import { SmartCache } from "./smart-cache"
-import { parseJsxLikeClasses } from "./ast-parser"
-import { scanWorkspaceNative, extractClassesNative, hashContentNative } from "./native-bridge"
-import { readCache, writeCache, filePriority, type NativeCacheEntry } from "./cache-native"
-import { isRustCacheAvailable } from "./rust-cache-bridge"
 import { createLogger } from "@tailwind-styled/shared"
+import { filePriority, type NativeCacheEntry, readCache, writeCache } from "./cache-native"
+import { hashContentNative, isRustCacheAvailable } from "./native-bridge"
 
 const log = createLogger("scanner")
 
@@ -247,25 +242,23 @@ function toCacheSize(size: number): number {
   return Math.min(normalized, 0xffffffff)
 }
 
-export function scanSource(source: string): string[] {
-  // Try Rust engine first — fastest path
-  const nativeClasses = extractClassesNative(source)
-  if (nativeClasses) return nativeClasses
+function extractClassesJs(source: string): string[] {
+  return extractAllClasses(source)
+}
 
-  // JS fallback
-  const baseClasses = extractAllClasses(source)
-  let jsxClasses: string[] = []
-  try {
-    jsxClasses = parseJsxLikeClasses(source)
-  } catch {
-    jsxClasses = []
+export function scanSource(source: string): string[] {
+  const nativeBinding = loadNativeParserBinding()
+  if (nativeBinding && typeof nativeBinding.parse_classes === "function") {
+    try {
+      const baseClasses = extractClassesJs(source)
+      const nativeNormalized = normalizeWithNativeParser(baseClasses)
+      if (nativeNormalized) return nativeNormalized
+    } catch {
+      // Fall through to JS-only path
+    }
   }
 
-  const merged = Array.from(new Set([...baseClasses, ...jsxClasses]))
-  const nativeNormalized = normalizeWithNativeParser(merged)
-  if (nativeNormalized) return nativeNormalized
-
-  return merged
+  return extractClassesJs(source)
 }
 
 export function isScannableFile(filePath: string, includeExtensions = DEFAULT_EXTENSIONS): boolean {
@@ -274,7 +267,6 @@ export function isScannableFile(filePath: string, includeExtensions = DEFAULT_EX
 
 export function scanFile(filePath: string): ScanFileResult {
   const source = fs.readFileSync(filePath, "utf8")
-  // Use Rust hash when available
   const hash = hashContentNative(source) ?? undefined
   return {
     file: filePath,
@@ -302,19 +294,22 @@ export function scanWorkspace(
     for (const cls of result.classes) unique.add(cls)
   }
 
-  // Native full-workspace scan is only used when cache is explicitly disabled.
+  const { scanWorkspaceNative } = require("./native-bridge")
+
   if (!options.cacheDir && !useCache) {
     const nativeResult = scanWorkspaceNative(rootDir, includeExtensions)
     if (nativeResult) {
       return {
-        files: nativeResult.files.map((f) => ({ file: f.file, classes: f.classes })),
+        files: nativeResult.files.map((f: { file: string; classes: string[] }) => ({
+          file: f.file,
+          classes: f.classes,
+        })),
         totalFiles: nativeResult.totalFiles,
         uniqueClasses: nativeResult.uniqueClasses,
       }
     }
   }
 
-  // Sprint 2: persistent Rust cache path for faster cold starts.
   if (useCache && isRustCacheAvailable()) {
     let cacheEntries: NativeCacheEntry[] = []
     try {
@@ -413,7 +408,6 @@ export function scanWorkspace(
     try {
       writeCache(rootDir, updatedEntries, options.cacheDir)
     } catch (error) {
-      // non-critical cache persistence failure
       log.debug(`cache write failed: ${error instanceof Error ? error.message : String(error)}`)
     }
 
@@ -424,67 +418,9 @@ export function scanWorkspace(
     }
   }
 
-  // JS fallback path (legacy ScanCache + SmartCache).
-  const cache = useCache ? new ScanCache(rootDir, { cacheDir: options.cacheDir }) : null
-  const smartCache = cache && smartInvalidation ? new SmartCache(cache) : null
-
-  if (!cache) {
-    for (const filePath of candidates) {
-      processResult(scanFile(filePath))
-    }
-  } else if (smartCache) {
-    for (const { filePath, stat, cached } of smartCache.rankFiles(candidates)) {
-      let result: ScanFileResult | null = null
-      const cacheEntry = cached ?? cache.get(filePath)
-
-      if (cacheEntry && cacheEntry.mtimeMs === stat.mtimeMs && cacheEntry.size === stat.size) {
-        result = { file: filePath, classes: cacheEntry.classes }
-        cache.touch(filePath)
-      }
-
-      if (!result) {
-        result = scanFile(filePath)
-        cache.set(filePath, {
-          mtimeMs: stat.mtimeMs,
-          size: stat.size,
-          classes: result.classes,
-          hitCount: 1,
-          lastSeenMs: Date.now(),
-        })
-      }
-
-      processResult(result)
-    }
-  } else {
-    for (const filePath of candidates) {
-      const stat = fs.statSync(filePath)
-      let result: ScanFileResult | null = null
-      const cacheEntry = cache.get(filePath)
-
-      if (cacheEntry && cacheEntry.mtimeMs === stat.mtimeMs && cacheEntry.size === stat.size) {
-        result = { file: filePath, classes: cacheEntry.classes }
-        cache.touch(filePath)
-      }
-
-      if (!result) {
-        result = scanFile(filePath)
-        cache.set(filePath, {
-          mtimeMs: stat.mtimeMs,
-          size: stat.size,
-          classes: result.classes,
-          hitCount: 1,
-          lastSeenMs: Date.now(),
-        })
-      }
-
-      processResult(result)
-    }
+  for (const filePath of candidates) {
+    processResult(scanFile(filePath))
   }
-
-  if (smartCache) {
-    smartCache.invalidateMissing(new Set(candidates))
-  }
-  cache?.save()
 
   return {
     files,
@@ -511,89 +447,4 @@ export async function scanWorkspaceAsync(
     )
     return scanWorkspace(rootDir, options)
   }
-}
-// Rust cache bridge — replaces cache.ts + smart-cache.ts in hot paths
-export {
-  rustCacheRead,
-  rustCacheWrite,
-  rustCachePriority,
-  isRustCacheAvailable,
-} from "./rust-cache-bridge"
-
-// ── New Rust-backed modules ───────────────────────────────────────────────────
-export { readCache, writeCache, filePriority } from "./cache-native"
-export type { NativeCacheEntry } from "./cache-native"
-export { astExtractClasses } from "./ast-native"
-export type { AstExtractResult } from "./ast-native"
-
-// ── Oxc AST parser (real AST, bukan regex) ────────────────────────────────────
-export { oxcExtractClasses } from "./oxc-bridge"
-
-// ── In-memory scan cache (Rust DashMap backend) ───────────────────────────────
-export {
-  cacheGet,
-  cachePut,
-  cacheInvalidate,
-  cacheSize,
-  isNative as isCacheNative,
-} from "./in-memory-cache"
-
-// ── Upgrade scanSource: pakai oxcExtractClasses sebagai tier kedua ────────────
-
-/**
- * Upgrade path: scanSource dengan Oxc AST + regex hybrid.
- * Lebih akurat dari scanSource biasa — deteksi component names + imports.
- * Otomatis fallback ke scanSource jika Oxc tidak tersedia.
- */
-export function scanSourceOxc(
-  source: string,
-  filename = "file.tsx"
-): {
-  classes: string[]
-  componentNames: string[]
-  hasUseClient: boolean
-  imports: string[]
-} {
-  const { oxcExtractClasses: oxcFn } = require("./oxc-bridge") as typeof import("./oxc-bridge")
-  try {
-    const r = oxcFn(source, filename)
-    return {
-      classes: r.classes,
-      componentNames: r.componentNames,
-      hasUseClient: r.hasUseClient,
-      imports: r.imports,
-    }
-  } catch {
-    return { classes: scanSource(source), componentNames: [], hasUseClient: false, imports: [] }
-  }
-}
-
-// ── Upgrade scanFile: pakai in-memory cache + oxc ─────────────────────────────
-
-/**
- * scanFile dengan in-memory Rust cache.
- * Cache miss → scan → store. Cache hit → return langsung.
- */
-export function scanFileCached(filePath: string): string[] {
-  const { cacheGet, cachePut } = require("./in-memory-cache") as typeof import("./in-memory-cache")
-
-  const content = fs.readFileSync(filePath, "utf8")
-  const hash = hashContentNative(content) ?? content.slice(0, 64)
-
-  // Cache hit
-  const cached = cacheGet(filePath, hash)
-  if (cached) return cached
-
-  // Cache miss — scan
-  const classes = scanSource(content)
-  const stat = (() => {
-    try {
-      return fs.statSync(filePath)
-    } catch {
-      return null
-    }
-  })()
-  cachePut(filePath, hash, classes, stat?.mtimeMs ?? 0, stat?.size ?? 0)
-
-  return classes
 }

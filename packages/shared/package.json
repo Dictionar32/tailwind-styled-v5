@@ -1,8 +1,12 @@
 {
   "name": "@tailwind-styled/shared",
-  "version": "4.5.0",
+  "version": "5.0.0",
   "description": "Shared utilities for tailwind-styled monorepo — LRUCache, logger, hash, timing, version",
   "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -16,12 +20,15 @@
   "files": ["dist", "src"],
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts",
-    "dev": "tsup src/index.ts --format esm,cjs --dts --watch"
+    "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "tsup": "^8.0.0",
     "typescript": "^5.0.0",
-    "@types/node": "^20"
+    "@types/node": "^20",
+    "vitest": "^2.0.0"
   },
   "keywords": ["tailwind-styled", "shared", "utilities", "cache", "logger"],
   "license": "MIT"

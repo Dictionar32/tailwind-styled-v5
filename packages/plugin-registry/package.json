@@ -4,6 +4,10 @@
   "description": "Plugin discovery and install helper for the tailwind-styled v5 ecosystem",
   "license": "MIT",
   "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",

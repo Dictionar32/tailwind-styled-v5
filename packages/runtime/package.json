@@ -2,6 +2,11 @@
   "name": "@tailwind-styled/runtime",
   "version": "5.0.0",
   "description": "Runtime helpers for tailwind-styled-v5 compound components",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -16,10 +21,14 @@
     "build": "tsup src/index.ts --format cjs,esm --out-dir dist --clean",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@tailwind-styled/theme": "workspace:*"
+  },
   "peerDependencies": {
     "react": ">=17"
   },
   "devDependencies": {
+    "@tailwind-styled/theme": "*",
     "@types/react": "*",
     "tsup": "*",
     "typescript": "*"

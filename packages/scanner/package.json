@@ -22,7 +22,7 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@tailwind-styled/compiler": "*"
+    "@tailwind-styled/compiler": "^5.0.0"
   },
   "devDependencies": {
     "typescript": "^5",

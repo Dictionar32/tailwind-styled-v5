@@ -1,5 +1,7 @@
+"use client"
+
 /**
- * tailwind-styled-v4 — Batched CSS Injector (Client Runtime)
+ * tailwind-styled-v5 — Batched CSS Injector (Client Runtime)
  *
  * Menggantikan pattern inject-per-komponen yang menyebabkan banyak
  * style recalculation saat banyak komponen mount bersamaan.

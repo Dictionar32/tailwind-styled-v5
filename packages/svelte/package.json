@@ -1,7 +1,7 @@
 {
   "name": "@tailwind-styled/svelte",
   "version": "5.0.0",
-  "description": "Svelte 4/5 adapter for tailwind-styled-v4 \u2014 cv(), tw(), and use:styled action",
+  "description": "Svelte 4/5 adapter for tailwind-styled-v4 — cv(), tw(), and use:styled action",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -40,5 +40,9 @@
     "variants",
     "css"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "sideEffects": false
 }

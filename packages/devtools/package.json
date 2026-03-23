@@ -1,9 +1,13 @@
 {
   "name": "@tailwind-styled/devtools",
-  "version": "4.5.0",
-  "description": "Visual debug overlay for tailwind-styled-v4 \u2014 zero production impact",
+  "version": "5.0.0",
+  "description": "Visual debug overlay for tailwind-styled-v4 — zero production impact",
   "license": "MIT",
   "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -32,7 +36,7 @@
     "@types/node": "^20"
   },
   "dependencies": {
-    "@tailwind-styled/analyzer": "*",
-    "@tailwind-styled/scanner": "*"
+    "@tailwind-styled/analyzer": "^5.0.0",
+    "@tailwind-styled/scanner": "^5.0.0"
   }
 }

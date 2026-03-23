@@ -1,34 +1,28 @@
-/**
- * tailwind-styled-v4 — Plugin System
- *
- * Fondasi ecosystem library. Plugin bisa extend compiler pipeline
- * di berbagai tahap: variant, utility, token, transform, CSS.
- *
- * Usage:
- *   import { createTw } from "@tailwind-styled/plugin"
- *   const tw = createTw({
- *     plugins: [
- *       presetAnimation(),
- *       presetTokens({ primary: "#3b82f6" }),
- *     ]
- *   })
- *
- * Buat plugin sendiri:
- *   const myPlugin: TwPlugin = {
- *     name: "my-plugin",
- *     setup(ctx) {
- *       ctx.addVariant("print", sel => `@media print { ${sel} }`)
- *       ctx.addUtility("glow", { "box-shadow": "0 0 20px currentColor" })
- *       ctx.addToken("brand", "#ff4d6d")
- *     }
- *   }
- */
+import type {
+  LoadResult,
+  PartialResolvedId,
+  PluginContext,
+  ResolveIdResult,
+  TransformResult,
+} from "rollup"
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
-import type { compileCssFromClasses as CompileCssFn } from "@tailwind-styled/compiler"
+export interface TwClassResult {
+  css: string
+  classes: string[]
+}
+
+export interface DesignTokens {
+  [key: string]: string | number | DesignTokens
+}
+
+export interface TwPluginOptions {
+  classProcessor?: (classes: string[]) => TwClassResult
+  tokens?: DesignTokens
+  debug?: boolean
+  minify?: boolean
+}
 
 export type VariantResolver = (selector: string) => string
 
@@ -54,34 +48,22 @@ export type CssHook = (css: string) => string
 export type TokenMap = Record<string, string>
 
 export interface TwContext {
-  /** Add a new variant (e.g. "group-hover", "print", "rtl") */
   addVariant(name: string, resolver: VariantResolver): void
-  /** Add a new utility class */
   addUtility(name: string, styles: UtilityDefinition): void
-  /** Add a design token (becomes CSS custom property) */
   addToken(name: string, value: string): void
-  /** Add object-config transform hook for tw.tag({ ... }) */
   addTransform(fn: TransformFn): void
-  /** Hook into CSS generation phase */
   onGenerateCSS(hook: CssHook): void
-  /** Hook into build end */
   onBuildEnd(hook: () => void | Promise<void>): void
-  /** Get latest live token value by name (if token engine is available). */
   getToken(name: string): string | undefined
-  /** Subscribe to token updates. Returns unsubscribe callback. */
   subscribeTokens(callback: (tokens: TokenMap) => void): () => void
-  /** Read current plugin config */
   readonly config: Record<string, any>
 }
 
+// Legacy TwPlugin interface for plugin development
 export interface TwPlugin {
   name: string
   setup(ctx: TwContext): void
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Plugin Registry — singleton per engine instance
-// ─────────────────────────────────────────────────────────────────────────────
 
 export interface PluginRegistry {
   variants: Map<string, VariantResolver>
@@ -92,6 +74,96 @@ export interface PluginRegistry {
   buildHooks: Array<() => void | Promise<void>>
   plugins: Set<string>
 }
+
+// ── Token Engine helpers ─────────────────────────────────────────────────────
+
+const TOKEN_ENGINE_KEY = "__TW_TOKEN_ENGINE__"
+
+function resolveTokenEngine(): any {
+  if (typeof globalThis !== "undefined") {
+    return (globalThis as any)[TOKEN_ENGINE_KEY]
+  }
+  return null
+}
+
+function readToken(engine: any, name: string): string | undefined {
+  if (!engine) return undefined
+  if (typeof engine.getToken === "function") return engine.getToken(name)
+  if (typeof engine.getTokens === "function") {
+    const tokens = engine.getTokens()
+    return tokens?.[name]
+  }
+  return undefined
+}
+
+// ── Vite/Rollup Plugin (separate from legacy TwPlugin) ─────────────────────
+
+export interface TwVitePlugin {
+  resolveId(
+    this: PluginContext,
+    source: string,
+    importer: string
+  ): Promise<PartialResolvedId | null>
+  load(this: PluginContext, id: string): Promise<LoadResult | null>
+  transform(this: PluginContext, code: string, id: string): Promise<TransformResult | null>
+  getToken(name: string): string | undefined
+  subscribeTokens(callback: (tokens: Record<string, string>) => void): () => void
+}
+
+export function createTwPlugin(options: TwPluginOptions = {}): TwVitePlugin {
+  return {
+    async resolveId(source, importer) {
+      if (!source.startsWith("tw.") && !source.startsWith("tw:")) return null
+      const importPath = source.replace(/^tw[.:]/, "")
+      const resolved = await this.resolve(importPath, importer, { skipSelf: true })
+      if (resolved) return { id: resolved.id }
+      return null
+    },
+    async load(id) {
+      return null
+    },
+    async transform(code, id) {
+      return null
+    },
+    getToken(name) {
+      const engine = resolveTokenEngine()
+      return readToken(engine, name)
+    },
+    subscribeTokens(callback) {
+      const engine = resolveTokenEngine()
+      if (!engine) return () => {}
+      if (typeof engine.subscribeTokens === "function") return engine.subscribeTokens(callback)
+      if (typeof engine.subscribe === "function") return engine.subscribe(callback)
+      return () => {}
+    },
+  }
+}
+
+// ── Global Registry (for @tailwind-styled/compiler) ───────────────────────────
+
+export interface TwGlobalRegistry {
+  transforms: Array<(config: any, ctx: any) => any>
+  tokens: Record<string, string>
+}
+
+const globalRegistry: TwGlobalRegistry = {
+  transforms: [],
+  tokens: {},
+}
+
+export function getGlobalRegistry(): TwGlobalRegistry {
+  return globalRegistry
+}
+
+export function registerTransform(transform: (config: any, ctx: any) => any): void {
+  globalRegistry.transforms.push(transform)
+}
+
+export function registerToken(name: string, value: string): void {
+  globalRegistry.tokens[name] = value
+}
+
+// ── Legacy exports for backward compatibility ─────────────────────────────--
 
 function createRegistry(): PluginRegistry {
   return {
@@ -105,166 +177,89 @@ function createRegistry(): PluginRegistry {
   }
 }
 
-// Global registry — dipakai bila createTw() tidak digunakan
 let _globalRegistry: PluginRegistry = createRegistry()
-
-export function getGlobalRegistry(): PluginRegistry {
-  return _globalRegistry
-}
 
 export function resetGlobalRegistry(): void {
   _globalRegistry = createRegistry()
 }
 
-interface LiveTokenEngineLike {
-  getToken?: (name: string) => string | undefined
-  getTokens?: () => TokenMap
-  subscribeTokens?: (callback: (tokens: TokenMap) => void) => () => void
-  subscribe?: (callback: (tokens: TokenMap) => void) => () => void
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-}
-
-function toTokenEngine(value: unknown): LiveTokenEngineLike | null {
-  if (!isRecord(value)) return null
-  if (typeof value.getToken === "function") return value as LiveTokenEngineLike
-  if (typeof value.getTokens === "function") return value as LiveTokenEngineLike
-  return null
-}
-
-function readGlobalTokenEngine(): LiveTokenEngineLike | null {
-  if (!isRecord(globalThis)) return null
-  return toTokenEngine((globalThis as Record<string, unknown>).__TW_TOKEN_ENGINE__)
-}
-
-function readToken(engine: LiveTokenEngineLike | null, name: string): string | undefined {
-  if (!engine) return undefined
-  if (typeof engine.getToken === "function") return engine.getToken(name)
-  if (typeof engine.getTokens === "function") {
-    const tokens = engine.getTokens()
-    if (isRecord(tokens) && typeof tokens[name] === "string") return tokens[name] as string
-  }
-  return undefined
-}
-
-let _cachedTokenEngine: LiveTokenEngineLike | null = null
-
-/**
- * Resolve token engine from various sources:
- * 1. globalThis.__TW_TOKEN_ENGINE__
- * 2. @tailwind-styled/runtime (liveTokenEngine)
- * 3. @tailwind-styled/theme (v5 token engine)
- * 4. @tailwind-styled/runtime-css (v5 runtime)
- * 5. tailwind-styled-v4 (legacy)
- */
-function resolveTokenEngine(): LiveTokenEngineLike | null {
-  const globalEngine = readGlobalTokenEngine()
-  if (globalEngine) {
-    _cachedTokenEngine = globalEngine
-    return globalEngine
-  }
-
-  if (_cachedTokenEngine) return _cachedTokenEngine
-
-  let runtimeRequire: ((id: string) => unknown) | null = null
-  try {
-    runtimeRequire = Function("return typeof require === 'function' ? require : null")() as
-      | ((id: string) => unknown)
-      | null
-  } catch {
-    runtimeRequire = null
-  }
-
-  if (!runtimeRequire) return null
-
-  // v5: Updated module list with new packages
-  const moduleNames = [
-    "@tailwind-styled/runtime",
-    "@tailwind-styled/theme",
-    "@tailwind-styled/runtime-css",
-    "tailwind-styled-v4",
-  ]
-
-  for (const moduleName of moduleNames) {
-    try {
-      const loaded = runtimeRequire(moduleName) as Record<string, unknown> | null
-      if (!loaded) continue
-
-      // Check liveTokenEngine property first
-      const fromNamed = toTokenEngine(loaded.liveTokenEngine)
-      if (fromNamed) {
-        _cachedTokenEngine = fromNamed
-        return fromNamed
-      }
-
-      // Check root export
-      const fromRoot = toTokenEngine(loaded)
-      if (fromRoot) {
-        _cachedTokenEngine = fromRoot
-        return fromRoot
-      }
-    } catch {
-      // ignore missing optional runtime modules
-    }
-  }
-
-  return null
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Context factory
-// ─────────────────────────────────────────────────────────────────────────────
-
 function createContext(registry: PluginRegistry, config: Record<string, any> = {}): TwContext {
   return {
     config,
-
     addVariant(name, resolver) {
-      if (registry.variants.has(name)) {
-        console.warn(
-          `[tailwind-styled-v4] Plugin variant "${name}" already registered — overwriting.`
-        )
-      }
       registry.variants.set(name, resolver)
     },
-
     addUtility(name, styles) {
       registry.utilities.set(name, styles)
     },
-
     addToken(name, value) {
-      // Normalize to CSS variable friendly name
       const normalized = name.replace(/[^a-zA-Z0-9-]/g, "-").toLowerCase()
       registry.tokens.set(normalized, value)
     },
-
     addTransform(fn) {
       registry.transforms.push(fn)
     },
-
     onGenerateCSS(hook) {
       registry.cssHooks.push(hook)
     },
-
     onBuildEnd(hook) {
       registry.buildHooks.push(hook)
     },
-
     getToken(name) {
-      const engine = resolveTokenEngine()
-      return readToken(engine, name)
+      return readToken(resolveTokenEngine(), name)
     },
-
     subscribeTokens(callback) {
       const engine = resolveTokenEngine()
       if (!engine) return () => {}
+      if (typeof engine.subscribeTokens === "function") return engine.subscribeTokens(callback)
+      if (typeof engine.subscribe === "function") return engine.subscribe(callback)
+      return () => {}
+    },
+  }
+}
 
-      if (typeof engine.subscribeTokens === "function") {
-        return engine.subscribeTokens(callback)
+// Legacy createTw function for backward compatibility
+export function createTw(config: Record<string, any> = {}): TwContext {
+  const ctx = createContext(_globalRegistry, config)
+  // Note: This doesn't actually run plugins - that's done by the compiler
+  return ctx
+}
+
+export function use(plugin: TwPlugin): void {
+  const ctx = createContext(_globalRegistry)
+  plugin.setup(ctx)
+}
+
+// Simple preset helpers
+export function presetTokens(tokens: Record<string, string>): TwPlugin {
+  return {
+    name: "preset-tokens",
+    setup(ctx) {
+      for (const [name, value] of Object.entries(tokens)) {
+        ctx.addToken(name, value)
       }
+    },
+  }
+}
 
-      if (typeof engine.subscribe === "function") {
-        return engine.subscribe(callback)
-   
+export function presetVariants(variants: Record<string, VariantResolver>): TwPlugin {
+  return {
+    name: "preset-variants",
+    setup(ctx) {
+      for (const [name, resolver] of Object.entries(variants)) {
+        ctx.addVariant(name, resolver)
+      }
+    },
+  }
+}
+
+export function presetScrollbar(): TwPlugin {
+  return {
+    name: "preset-scrollbar",
+    setup(ctx) {
+      ctx.addVariant("scrollbar-thin", () => "::-webkit-scrollbar{width:8px;height:8px}")
+      ctx.addVariant("scrollbar-none", () => "::-webkit-scrollbar{display:none}")
+      ctx.addUtility("scrollbar-hide", { "-ms-overflow-style": "none", "scrollbar-width": "none" })
+    },
+  }
+}

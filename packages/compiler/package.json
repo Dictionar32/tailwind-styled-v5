@@ -1,9 +1,13 @@
 {
   "name": "@tailwind-styled/compiler",
-  "version": "4.5.0",
+  "version": "5.0.0",
   "description": "Compiler pipeline for tailwind-styled-v4",
   "license": "MIT",
   "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -20,11 +24,11 @@
     }
   },
   "dependencies": {
-    "@tailwind-styled/atomic": "*",
+    "@tailwind-styled/atomic": "^5.0.0",
     "tailwind-merge": "^3",
     "postcss": "^8",
-    "@tailwind-styled/shared": "*",
-    "@tailwind-styled/plugin": "*"
+    "@tailwind-styled/shared": "^5.0.0",
+    "@tailwind-styled/plugin": "^5.0.0"
   },
   "optionalDependencies": {
     "oxc-parser": "^0.118.0"

@@ -3,7 +3,7 @@ import { defineConfig } from "tsup"
 export default defineConfig({
   entry: { plugin: "src/plugin.ts" },
   format: ["cjs", "esm"],
-  dts: true,
+  dts: false,
   clean: true,
   external: [
     // Framework & Node built-ins

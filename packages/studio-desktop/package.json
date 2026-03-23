@@ -1,7 +1,7 @@
 {
   "name": "@tailwind-styled/studio-desktop",
-  "version": "4.5.0",
-  "description": "tailwind-styled Studio \u2014 Desktop app (Electron)",
+  "version": "5.0.0",
+  "description": "tailwind-styled Studio — Desktop app (Electron)",
   "private": true,
   "main": "src/main.js",
   "scripts": {
@@ -12,7 +12,7 @@
     "build:linux": "electron-builder --linux",
     "build:all": "electron-builder --mac --win --linux",
     "build": "electron-builder --dir",
-    "test": "echo \"Studio desktop tests require Electron \u2014 run: npm run start\"",
+    "test": "echo \"Studio desktop tests require Electron — run: npm run start\"",
     "package:mac": "electron-builder --mac",
     "package:win": "electron-builder --win",
     "package:linux": "electron-builder --linux",
@@ -23,7 +23,7 @@
   "build": {
     "appId": "dev.tailwind-styled.studio",
     "productName": "tailwind-styled Studio",
-    "copyright": "Copyright \u00a9 2026",
+    "copyright": "Copyright © 2026",
     "directories": {
       "output": "dist-electron"
     },
@@ -96,13 +96,13 @@
   },
   "dependencies": {
     "electron-updater": "^6.0.0",
-    "@tailwind-styled/engine": "*",
-    "@tailwind-styled/scanner": "*",
-    "@tailwind-styled/shared": "*"
+    "@tailwind-styled/engine": "^5.0.0",
+    "@tailwind-styled/scanner": "^5.0.0",
+    "@tailwind-styled/shared": "^5.0.0"
   },
   "devDependencies": {},
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "optionalDependencies": {
     "electron": "^35.7.5",

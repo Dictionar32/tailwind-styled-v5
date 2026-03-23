@@ -1,10 +1,15 @@
 import * as path from "node:path"
-import * as vscode from "vscode"
+import { type AnalyzerReport, analyzeWorkspace } from "@tailwind-styled/analyzer"
 import * as cp from "child_process"
 import * as fs from "fs"
-import { analyzeWorkspace, type AnalyzerReport } from "@tailwind-styled/analyzer"
+import * as vscode from "vscode"
+import { SCRIPT_VERSION, SCRIPTS } from "./constants"
+import { reportHealth, runHealthCheck } from "./health-check"
+import { execScript, killAllProcesses } from "./utils/exec-script"
+import { findLspScript, findScript } from "./utils/resolve-script"
 
 let outputChannel: vscode.OutputChannel | undefined
+let lspProcess: cp.ChildProcess | null = null
 
 function getWorkspaceRoot(): string | null {
   const folder = vscode.workspace.workspaceFolders?.[0]
@@ -32,28 +37,7 @@ function toSummary(report: AnalyzerReport): string {
   ].join(" • ")
 }
 
-function runScript(
-  root: string,
-  scriptRelPath: string,
-  args: string[] = []
-): Promise<{ stdout: string; stderr: string; code: number }> {
-  return new Promise((resolve) => {
-    const { spawn } = require("node:child_process")
-    const scriptPath = path.join(root, scriptRelPath)
-    const proc = spawn(process.execPath, [scriptPath, ...args], {
-      cwd: root,
-      encoding: "utf8",
-    })
-    let stdout = "",
-      stderr = ""
-    proc.stdout?.on("data", (d: Buffer) => (stdout += d.toString()))
-    proc.stderr?.on("data", (d: Buffer) => (stderr += d.toString()))
-    proc.on("close", (code: number) => resolve({ stdout, stderr, code: code ?? 0 }))
-    proc.on("error", (e: Error) => resolve({ stdout: "", stderr: e.message, code: 1 }))
-  })
-}
-
-// ─── Analyze workspace ────────────────────────────────────────────────────────
+// ─── Analyze workspace ───────────────────────────────────────────────────────-
 
 async function analyzeWorkspaceCommand(): Promise<void> {
   const root = getWorkspaceRoot()
@@ -79,6 +63,7 @@ async function analyzeWorkspaceCommand(): Promise<void> {
         const output = getOutputChannel()
         output.clear()
         output.appendLine(`Workspace: ${path.basename(root)}`)
+        output.appendLine(`[v${SCRIPT_VERSION}] Analysis complete`)
         output.appendLine(JSON.stringify(report, null, 2))
         output.show(true)
       }
@@ -164,11 +149,20 @@ async function createComponentCommand(): Promise<void> {
     await vscode.window.withProgress(
       { location: vscode.ProgressLocation.Notification, title: `Generating ${componentName}...` },
       async () => {
+        const aiScript = findScript(root, SCRIPTS.ai)
+        if (!aiScript) {
+          vscode.window.showErrorMessage(
+            `Tailwind Styled: AI script not found. Please ensure scripts are installed.`
+          )
+          getOutputChannel().appendLine(`[error] AI script not found. Tried: ${SCRIPTS.ai}`)
+          return
+        }
+
         const provider = getConfig("ai.provider", "anthropic")
-        const result = await runScript(root, "scripts/v45/ai.mjs", [
-          componentName,
-          `--provider=${provider}`,
-        ])
+        const result = await execScript(aiScript, [componentName, `--provider=${provider}`], {
+          cwd: root,
+        })
+
         if (result.code === 0 && result.stdout.trim()) {
           const snippet = new vscode.SnippetString(result.stdout.trim() + "\n")
           await editor.insertSnippet(snippet)
@@ -179,6 +173,9 @@ async function createComponentCommand(): Promise<void> {
           vscode.window.showWarningMessage(
             `Tailwind Styled: AI generation failed, using snippet fallback`
           )
+          if (result.stderr) {
+            getOutputChannel().appendLine(`[ai] Error: ${result.stderr}`)
+          }
           insertBasicSnippet(editor, componentName)
         }
       }
@@ -190,7 +187,7 @@ async function createComponentCommand(): Promise<void> {
 
 function insertBasicSnippet(editor: vscode.TextEditor, name: string): void {
   const snippet = new vscode.SnippetString(
-    `const ${name} = tw.\${1|button,div,span,a,input|}({\n` +
+    `const ${name} = tw.\${1|button,div,span,a|input|}({\n` +
       `  base: "\${2:px-4 py-2 rounded-md}",\n` +
       `  variants: {\n` +
       `    intent: {\n` +
@@ -222,12 +219,23 @@ async function splitRoutesCssCommand(): Promise<void> {
       title: "Tailwind Styled: splitting CSS per route...",
     },
     async () => {
-      const result = await runScript(root, "scripts/v49/split-routes.mjs", [root, outDir])
+      const splitScript = findScript(root, SCRIPTS.splitRoutes)
+      if (!splitScript) {
+        vscode.window.showErrorMessage(
+          `Tailwind Styled: split-routes script not found. Please ensure scripts are installed.`
+        )
+        getOutputChannel().appendLine(
+          `[error] split-routes script not found. Tried: ${SCRIPTS.splitRoutes}`
+        )
+        return
+      }
+
+      const result = await execScript(splitScript, [root, outDir], { cwd: root })
       const output = getOutputChannel()
       output.show(true)
 
       if (result.code === 0) {
-        let stats: any = {}
+        let stats: Record<string, unknown> = {}
         try {
           stats = JSON.parse(result.stdout)
         } catch {}
@@ -277,7 +285,16 @@ async function figmaSyncCommand(): Promise<void> {
   output.show(true)
   output.appendLine(`[figma-sync] ${action.value}...`)
 
-  const result = await runScript(root, "scripts/v45/figma-sync.mjs", [action.value])
+  const figmaScript = findScript(root, SCRIPTS.figmaSync)
+  if (!figmaScript) {
+    vscode.window.showErrorMessage(
+      `Tailwind Styled: figma-sync script not found. Please ensure scripts are installed.`
+    )
+    output.appendLine(`[error] figma-sync script not found. Tried: ${SCRIPTS.figmaSync}`)
+    return
+  }
+
+  const result = await execScript(figmaScript, [action.value], { cwd: root })
   output.appendLine(result.stdout || result.stderr)
 
   if (result.code === 0) {
@@ -293,31 +310,24 @@ async function figmaSyncCommand(): Promise<void> {
   }
 }
 
-// ─── Extension activate ───────────────────────────────────────────────────────
-
-// ─── LSP Client (Sprint 10) ──────────────────────────────────────────────────
-
-let lspProcess: cp.ChildProcess | null = null
+// ─── LSP Client ───────────────────────────────────────────────────────────────-
 
 function startLspServer(root: string): void {
-  if (lspProcess) return // already running
+  if (lspProcess) return
   const lspEnabled = getConfig("lsp.enable", true)
   if (!lspEnabled) {
     console.log("[tailwind-styled] LSP disabled via settings")
     return
   }
 
-  const lspScript = [
-    // 1. Bundled bersama extension di dist/ (postbuild copy)
-    path.join(__dirname, "lsp.mjs"),
-    // 2. Workspace root scripts (monorepo dev)
-    path.join(root, "scripts/v48/lsp.mjs"),
-    // 3. node_modules tailwind-styled-v4
-    path.join(root, "node_modules/tailwind-styled-v4/scripts/v48/lsp.mjs"),
-  ].find((p) => fs.existsSync(p))
+  const bundledLspPath = path.join(__dirname, "lsp.mjs")
+  const lspScript = findLspScript(root, bundledLspPath)
 
   if (!lspScript) {
-    console.warn("[tailwind-styled] LSP script not found — install tailwind-styled-v4")
+    console.warn("[tailwind-styled] LSP script not found")
+    getOutputChannel().appendLine(
+      "[LSP] Script not found - install tailwind-styled-v5 or run from monorepo"
+    )
     return
   }
 
@@ -326,13 +336,17 @@ function startLspServer(root: string): void {
     env: { ...process.env, TWS_LOG_LEVEL: "warn" },
   })
 
-  lspProcess.on("error", (e) => console.warn("[tailwind-styled] LSP error:", e.message))
+  lspProcess.on("error", (e) => {
+    console.warn("[tailwind-styled] LSP error:", e.message)
+    getOutputChannel().appendLine(`[LSP] Error: ${e.message}`)
+  })
   lspProcess.on("exit", (code) => {
     console.log(`[tailwind-styled] LSP exited (${code})`)
     lspProcess = null
   })
 
-  console.log("[tailwind-styled] LSP server started (pid:", lspProcess.pid, ")")
+  console.log("[tailwind-styled] LSP server started:", lspScript)
+  getOutputChannel().appendLine(`[LSP] Started: ${lspScript}`)
 }
 
 function stopLspServer(): void {
@@ -342,7 +356,12 @@ function stopLspServer(): void {
   console.log("[tailwind-styled] LSP server stopped")
 }
 
+// ─── Extension activate ───────────────────────────────────────────────────────
+
 export function activate(context: vscode.ExtensionContext): void {
+  const output = getOutputChannel()
+  output.appendLine(`[Extension] v${SCRIPT_VERSION} activating...`)
+
   const commands = [
     vscode.commands.registerCommand("tailwindStyled.analyzeWorkspace", analyzeWorkspaceCommand),
     vscode.commands.registerCommand("tailwindStyled.installPlugin", installPluginCommand),
@@ -352,11 +371,19 @@ export function activate(context: vscode.ExtensionContext): void {
   ]
 
   for (const command of commands) {
-    // Start LSP if enabled in settings
-    const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
-    if (folder) startLspServer(folder)
+    context.subscriptions.push(command)
+  }
 
-    // Restart LSP on settings change
+  const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+  if (folder) {
+    const bundledLspPath = path.join(__dirname, "lsp.mjs")
+    const health = runHealthCheck(folder, bundledLspPath)
+    reportHealth(health, output)
+
+    if (health.lspPath) {
+      startLspServer(folder)
+    }
+
     context.subscriptions.push(
       vscode.workspace.onDidChangeConfiguration((e) => {
         if (e.affectsConfiguration("tailwindStyled.lsp")) {
@@ -365,14 +392,15 @@ export function activate(context: vscode.ExtensionContext): void {
         }
       })
     )
-
-    context.subscriptions.push(command)
   }
+
   context.subscriptions.push({ dispose: () => outputChannel?.dispose() })
+  output.appendLine(`[Extension] v${SCRIPT_VERSION} activated`)
 }
 
 export function deactivate(): void {
   stopLspServer()
+  killAllProcesses()
   outputChannel?.dispose()
   outputChannel = undefined
 }

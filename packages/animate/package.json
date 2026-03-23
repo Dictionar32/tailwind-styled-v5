@@ -1,9 +1,13 @@
-﻿{
+{
   "name": "@tailwind-styled/animate",
   "version": "5.0.0",
   "description": "Native-backed async animation DSL for tailwind-styled-v4",
   "license": "MIT",
   "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -18,13 +22,9 @@
     "dist",
     "README.md"
   ],
-  "sideEffects": false,
-  "engines": {
-    "node": ">=20"
-  },
   "dependencies": {
-    "@tailwind-styled/analyzer": "*",
-    "@tailwind-styled/shared": "*"
+    "@tailwind-styled/analyzer": "^5.0.0",
+    "@tailwind-styled/shared": "^5.0.0"
   },
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --out-dir dist --clean",

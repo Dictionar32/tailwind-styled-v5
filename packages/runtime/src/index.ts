@@ -1,30 +1,19 @@
 /**
- * @tailwind-styled/runtime
+ * @tailwind-styled/runtime v5
  *
- * Lightweight runtime helpers that consume the metadata JSON produced by the
- * Rust compiler engine. The heavy lifting (class extraction, scoping,
- * CSS generation) happens at build time; this file only:
- *
- *   1. Attaches subcomponent properties to the base React component.
- *   2. Handles conditional class props at runtime (e.g. fullWidth, variant).
- *   3. Stays minimal — no parsing, no CSS-in-JS, no external deps.
- *
- * The plugin bundler (Next.js / Vite / Rspack) automatically rewrites:
- *
- *   const Button = tw.button`bg-blue-500  icon { mr-2 w-5 h-5 }`
- *
- * into:
- *
- *   import { createComponent } from "@tailwind-styled/runtime"
- *   export const Button = createComponent("button", "Button_abc123", {
- *     icon: { tag: "span", class: "Button_icon_abc123" },
- *   })
- *
- * Users never call createComponent directly — it is injected by the compiler.
+ * Lightweight runtime helpers for compiled tailwind-styled-v5 components.
+ * Live token engine has been moved to @tailwind-styled/theme package.
  */
 
 import React from "react"
-export type { LiveTokenSet, TokenMap, TokenSubscriber } from "./liveTokenEngine"
+
+// Re-export live token engine from @tailwind-styled/theme
+export type {
+  LiveTokenEngineBridge,
+  LiveTokenSet,
+  TokenMap,
+  TokenSubscriber,
+} from "@tailwind-styled/theme"
 export {
   applyTokenSet,
   createUseTokens,
@@ -38,7 +27,7 @@ export {
   subscribeTokens,
   tokenRef,
   tokenVar,
-} from "./liveTokenEngine"
+} from "@tailwind-styled/theme"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types

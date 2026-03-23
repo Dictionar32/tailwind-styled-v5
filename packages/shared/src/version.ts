@@ -1,6 +1,13 @@
 /** Parse semver string → { major, minor, patch } */
 export function parseVersion(v: string): { major: number; minor: number; patch: number } {
-  const [major = 0, minor = 0, patch = 0] = v.replace(/^v/, "").split(".").map(Number)
+  const parts = v
+    .replace(/^v/, "")
+    .split(".")
+    .map((p) => {
+      const n = Number(p)
+      return Number.isNaN(n) ? 0 : n
+    })
+  const [major = 0, minor = 0, patch = 0] = parts
   return { major, minor, patch }
 }
 

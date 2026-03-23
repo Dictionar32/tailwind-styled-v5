@@ -17,6 +17,7 @@ pub enum WatchEventKind {
     Add,
     Change,
     Remove,
+    #[allow(dead_code)]
     Rename,
 }
 

@@ -1,8 +1,12 @@
 {
   "name": "@tailwind-styled/vue",
   "version": "5.0.0",
-  "description": "Vue 3 adapter for tailwind-styled-v4 \u2014 tw() components with variants",
+  "description": "Vue 3 adapter for tailwind-styled-v4 — tw() components with variants",
   "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",

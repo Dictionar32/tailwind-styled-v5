@@ -19,7 +19,14 @@
  *     ↓ inject transform marker
  */
 
-import type { ComponentConfig } from "@tailwind-styled/plugin"
+// Local type alias for component config (previously imported from @tailwind-styled/plugin)
+export interface ComponentConfig {
+  base: string
+  variants: Record<string, Record<string, string>>
+  compoundVariants: Array<{ class: string; [key: string]: any }>
+  defaultVariants: Record<string, string>
+}
+
 import { getGlobalRegistry } from "@tailwind-styled/plugin"
 import { normalizeClasses } from "./classMerger"
 import { hoistComponents } from "./componentHoister"

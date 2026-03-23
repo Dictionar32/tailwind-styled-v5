@@ -4,6 +4,10 @@
   "description": "Default Tailwind preset for tailwind-styled-v5 — v5 with Tailwind v4 CSS-first support",
   "license": "MIT",
   "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",

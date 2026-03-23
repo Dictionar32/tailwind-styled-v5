@@ -106,6 +106,10 @@ export function hashContentNative(content: string): string | null {
   return getBinding()?.hashFileContent?.(content) ?? null
 }
 
+export function isRustCacheAvailable(): boolean {
+  return getBinding() !== null
+}
+
 export function hasNativeScannerBinding(): boolean {
   return getBinding() !== null
 }

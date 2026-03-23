@@ -4,6 +4,10 @@
   "description": "Next.js integration for tailwind-styled-v4 — withTailwindStyled, webpack/turbopack loaders",
   "license": "MIT",
   "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -22,9 +26,9 @@
     "dev": "tsup --watch"
   },
   "dependencies": {
-    "@tailwind-styled/compiler": "*",
-    "@tailwind-styled/engine": "*",
-    "@tailwind-styled/plugin": "*"
+    "@tailwind-styled/compiler": "^5.0.0",
+    "@tailwind-styled/engine": "^5.0.0",
+    "@tailwind-styled/plugin": "^5.0.0"
   },
   "peerDependencies": {
     "next": ">=14"

@@ -3,7 +3,8 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "outDir": "dist",
-    "declarationDir": "dist"
+    "declarationDir": "dist",
+    "skipLibCheck": true
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]

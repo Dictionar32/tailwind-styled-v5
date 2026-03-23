@@ -38,6 +38,8 @@ export interface VitePluginOptions {
   useEngineBuild?: boolean
   /** Enable analyzer for semantic reports. Default: false */
   analyze?: boolean
+  /** Throw error on engine build failure. If true, error will abort Vite build (useful for CI/CD). If false (default), error only shows console.warn. Default: false */
+  strict?: boolean
 
   /** @deprecated in v5 - mode is always "zero-runtime" */
   mode?: "zero-runtime" | "runtime"
@@ -79,6 +81,7 @@ export function tailwindStyledPlugin(opts: VitePluginOptions = {}): any {
     generateSafelist: doSafelist = true,
     useEngineBuild = true,
     analyze = false,
+    strict = false,
   } = opts
 
   let root = process.cwd()
@@ -166,7 +169,12 @@ export function tailwindStyledPlugin(opts: VitePluginOptions = {}): any {
           await engine.build()
           console.log("[tailwind-styled-v4] ✓ Engine build complete")
         } catch (e) {
-          console.warn("[tailwind-styled-v4] Engine build step failed:", e)
+          const msg = `[tailwind-styled-v4] Engine build step failed: ${e}`
+          if (strict) {
+            throw new Error(msg)
+          } else {
+            console.warn(msg)
+          }
         }
       }
     },

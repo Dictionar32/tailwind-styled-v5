@@ -1,10 +1,14 @@
 {
   "name": "tailwind-styled-v4",
-  "version": "4.5.0",
+  "version": "5.0.0",
   "description": "Zero-config, zero-runtime, compiler-driven Tailwind styling — tw.div, variants, RSC-aware",
   "author": "Dictionar32",
   "license": "MIT",
   "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -26,9 +30,9 @@
       "require": "./dist/vite.cjs"
     },
     "./compiler": {
-      "types": "./dist/compiler.d.ts",
-      "import": "./dist/compiler.js",
-      "require": "./dist/compiler.cjs"
+      "types": "../compiler/dist/index.d.ts",
+      "import": "../compiler/dist/index.js",
+      "require": "../compiler/dist/index.cjs"
     },
     "./preset": {
       "types": "./dist/preset.d.ts",
@@ -41,9 +45,9 @@
       "require": "./dist/css.cjs"
     },
     "./plugins": {
-      "types": "./dist/plugins.d.ts",
-      "import": "./dist/plugins.js",
-      "require": "./dist/plugins.cjs"
+      "types": "../plugin/dist/index.d.ts",
+      "import": "../plugin/dist/index.js",
+      "require": "../plugin/dist/index.cjs"
     },
     "./devtools": {
       "types": "./dist/devtools.d.ts",
@@ -56,9 +60,9 @@
       "require": "./dist/animate.cjs"
     },
     "./theme": {
-      "types": "./dist/theme.d.ts",
-      "import": "./dist/theme.js",
-      "require": "./dist/theme.cjs"
+      "types": "../theme/dist/index.d.ts",
+      "import": "../theme/dist/index.js",
+      "require": "../theme/dist/index.cjs"
     },
     "./package.json": "./package.json"
   },
@@ -68,10 +72,6 @@
     "CHANGELOG.md",
     "LICENSE"
   ],
-  "sideEffects": false,
-  "engines": {
-    "node": ">=18"
-  },
   "dependencies": {
     "tailwind-merge": "^3",
     "postcss": "^8"
@@ -85,7 +85,7 @@
     "@tailwindcss/postcss": "^4"
   },
   "devDependencies": {
-    "@tailwind-styled/animate": "*",
+    "@tailwind-styled/animate": "^5.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "tsup": "^8",

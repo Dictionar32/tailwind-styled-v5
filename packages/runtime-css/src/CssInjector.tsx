@@ -1,5 +1,7 @@
+"use server"
+
 /**
- * tailwind-styled-v4 — CSS Injector (React Server Component)
+ * tailwind-styled-v5 — CSS Injector (React Server Component)
  *
  * Inject CSS yang sudah di-generate per-route langsung ke <head>.
  * Dipakai di Next.js App Router layout atau page.
@@ -30,6 +32,8 @@ interface CssInjectorProps {
   minify?: boolean
   /** Add <link> tag instead of inline <style> untuk cached CSS */
   asLink?: boolean
+  /** Override manifest path for dev mode */
+  manifestPath?: string
 }
 
 /**
@@ -42,10 +46,28 @@ export async function TwCssInjector({
   includeGlobal = true,
   minify = true,
   asLink = false,
+  manifestPath,
 }: CssInjectorProps): Promise<React.ReactElement> {
   const resolvedDir = cssDir ?? path.join(process.cwd(), ".next", "static", "css", "tw")
 
   const cssChunks: string[] = []
+
+  // Try manifest-based loading first (for dev mode)
+  if (manifestPath) {
+    const manifestCss = loadCssFromManifest(manifestPath, route ?? "/")
+    if (manifestCss) {
+      cssChunks.push(manifestCss)
+    }
+  } else {
+    // Fallback: legacy file-based loading with path detection
+    const detectedManifest = detectManifestPath(resolvedDir)
+    if (detectedManifest) {
+      const manifestCss = loadCssFromManifest(detectedManifest, route ?? "/")
+      if (manifestCss) {
+        cssChunks.push(manifestCss)
+      }
+    }
+  }
 
   // 1. Global CSS (base styles, reset)
   if (includeGlobal) {
@@ -115,6 +137,51 @@ function routeToFilename(route: string): string {
   if (route === "/") return "index.css"
   if (route === "__global") return "_global.css"
   return `${route.replace(/^\//, "").replace(/\//g, "_")}.css`
+}
+
+function detectManifestPath(cssDir: string): string | null {
+  const candidates = [
+    path.join(cssDir, "css-manifest.json"),
+    path.join(process.cwd(), "public", "__tw", "css-manifest.json"),
+    path.join(process.cwd(), "artifacts", "route-css", "css-manifest.json"),
+  ]
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate
+    }
+  }
+  return null
+}
+
+interface CssManifest {
+  routes?: Record<string, string>
+  global?: string
+  [key: string]: unknown
+}
+
+function loadCssFromManifest(manifestPath: string, route: string): string | null {
+  try {
+    if (!fs.existsSync(manifestPath)) return null
+
+    const content = fs.readFileSync(manifestPath, "utf-8")
+    const manifest: CssManifest = JSON.parse(content)
+
+    // Try route-specific CSS
+    if (manifest.routes?.[route]) {
+      const routeCssPath = path.join(path.dirname(manifestPath), manifest.routes[route])
+      return loadCssFile(routeCssPath)
+    }
+
+    // Fallback: global CSS
+    if (manifest.global) {
+      const globalCssPath = path.join(path.dirname(manifestPath), manifest.global)
+      return loadCssFile(globalCssPath)
+    }
+  } catch {
+    // manifest not found or invalid
+  }
+  return null
 }
 
 function minifyCss(css: string): string {

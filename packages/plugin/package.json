@@ -4,6 +4,10 @@
   "description": "Plugin system for tailwind-styled-v5 — extend compiler pipeline at any stage",
   "license": "MIT",
   "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -27,13 +31,12 @@
   "files": [
     "dist"
   ],
-  "sideEffects": false,
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch"
   },
   "dependencies": {
-    "@tailwind-styled/compiler": "*"
+    "@tailwind-styled/compiler": "^5.0.0"
   },
   "devDependencies": {
     "tsup": "^8",

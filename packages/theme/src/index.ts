@@ -1,8 +1,11 @@
 /**
- * tailwind-styled-v4 — Multi-Theme Engine
+ * tailwind-styled-v5 — Multi-Theme Engine + Live Token Engine
  *
  * Enterprise-grade theming. Support light/dark/brand themes dengan
  * CSS variables. Zero runtime overhead — themes di-resolve via CSS.
+ *
+ * Live token engine provides runtime token state management with
+ * CSS variable sync to document root.
  *
  * Fitur:
  *  - Multiple named themes (light, dark, brand, high-contrast)
@@ -10,6 +13,7 @@
  *  - Theme contract (TypeScript-safe — missing tokens = TS error)
  *  - Per-component theme override
  *  - White-label ready
+ *  - Live token engine (runtime token state + CSS sync)
  *
  * @example
  *   // 1. Define contract
@@ -37,25 +41,51 @@
  */
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Types
+// Live Token Engine exports
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type {
+  LiveTokenEngineBridge,
+  LiveTokenSet,
+  TokenMap,
+  TokenSubscriber,
+} from "./liveTokenEngine"
+export {
+  applyTokenSet,
+  createUseTokens,
+  generateTokenCssString,
+  getToken,
+  getTokens,
+  liveToken,
+  liveTokenEngine,
+  setToken,
+  setTokens,
+  subscribeTokens,
+  tokenRef,
+  tokenVar,
+} from "./liveTokenEngine"
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Theme types
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { getNativeThemeBinding } from "./native-bridge"
 
-export type TokenMap = Record<string, Record<string, string>>
+// ThemeTokenMap untuk theming (grouped tokens seperti { colors: { bg: "#fff" } })
+export type ThemeTokenMap = Record<string, Record<string, string>>
 
-export interface ThemeContract<T extends TokenMap> {
+export interface ThemeContract<T extends ThemeTokenMap> {
   _contract: T
   _vars: ThemeVars<T>
 }
 
-export type ThemeVars<T extends TokenMap> = {
+export type ThemeVars<T extends ThemeTokenMap> = {
   [Group in keyof T]: {
     [Token in keyof T[Group]]: string // "var(--group-token)"
   }
 }
 
-export interface Theme<T extends TokenMap> {
+export interface Theme<T extends ThemeTokenMap> {
   name: string
   contract: ThemeContract<T>
   values: T
@@ -85,7 +115,7 @@ export interface Theme<T extends TokenMap> {
  * const Card = tw.div`bg-[${contract._vars.colors.bg}]`
  * // → tw.div`bg-[var(--colors-bg)]`
  */
-export function defineThemeContract<T extends TokenMap>(shape: T): ThemeContract<T> {
+export function defineThemeContract<T extends ThemeTokenMap>(shape: T): ThemeContract<T> {
   const vars = {} as ThemeVars<T>
 
   for (const group in shape) {
@@ -110,7 +140,7 @@ export function defineThemeContract<T extends TokenMap>(shape: T): ThemeContract
  * @param values - Token values (TypeScript enforces completeness)
  * @param asRoot - If true, use :root selector. Default: false (uses [data-theme])
  */
-export function createTheme<T extends TokenMap>(
+export function createTheme<T extends ThemeTokenMap>(
   contract: ThemeContract<T>,
   name: string,
   values: T,
@@ -157,7 +187,7 @@ export class ThemeRegistry {
   private defaultTheme: string | null = null
 
   /** Register a theme */
-  register<T extends TokenMap>(theme: Theme<T>, isDefault = false): this {
+  register<T extends ThemeTokenMap>(theme: Theme<T>, isDefault = false): this {
     this.themes.set(theme.name, theme)
     if (isDefault || !this.defaultTheme) {
       this.defaultTheme = theme.name
@@ -237,7 +267,7 @@ export class ThemeRegistry {
 // Convenience: createMultiTheme — shorthand for common light/dark setup
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface MultiThemeConfig<T extends TokenMap> {
+export interface MultiThemeConfig<T extends ThemeTokenMap> {
   contract: ThemeContract<T>
   light: T
   dark: T
@@ -267,7 +297,7 @@ export interface MultiThemeConfig<T extends TokenMap> {
  * // Use tokens in components:
  * const Card = tw.div`bg-[${vars.colors.bg}] text-[${vars.colors.fg}]`
  */
-export function createMultiTheme<T extends TokenMap>(
+export function createMultiTheme<T extends ThemeTokenMap>(
   config: MultiThemeConfig<T>
 ): {
   registry: ThemeRegistry
